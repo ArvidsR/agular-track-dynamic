@@ -1,0 +1,134 @@
+<div class="controls">
+  <!-- Step: Start -->
+  <div *ngIf="step === 'start'" class="center-content">
+    <button (click)="getHeats()">Start</button>
+  </div>
+
+  <!-- Step: Heat Selection -->
+  <div *ngIf="step === 'heat'" class="center-content">
+    <label>Select Heat:</label>
+    <div class="checkbox-container">
+      <div *ngFor="let heat of heats">
+        <input 
+          type="radio" 
+          [checked]="selectedHeat === heat.heat_id" 
+          (change)="selectSingleHeat(heat.heat_id)">
+        Heat {{ heat.heat_id }}
+      </div>
+    </div>
+    <div class="button-group">
+      <button (click)="goBack()">Back</button>
+      <button (click)="proceedToRiders()" [disabled]="!selectedHeat">Next</button>
+    </div>
+  </div>
+
+  <!-- Step: Rider Selection -->
+  <div *ngIf="step === 'rider'" class="center-content">
+    <label>Select Riders:</label>
+    <div class="checkbox-container">
+      <div *ngFor="let rider of riders">
+        <input 
+          type="checkbox" 
+          [value]="rider.riderID" 
+          [checked]="selectedRiders.has(rider.riderID)" 
+          (change)="toggleRiderSelection(rider.riderID)"> 
+      {{ rider.name }}
+      </div>
+    </div>
+    <div class="button-group">
+      <button (click)="goBack()">Back</button>
+      <button (click)="proceedToLaps()" [disabled]="selectedRiders.size === 0">Next</button>
+    </div>
+  </div>
+
+  <!-- Step: Lap Selection -->
+  <div *ngIf="step === 'lap'" class="center-content">
+    <label>Select Laps:</label>
+    <div class="checkbox-container">
+      <div *ngFor="let lap of laps">
+        <input 
+          type="checkbox" 
+          [value]="lap" 
+          [checked]="selectedLaps.has(lap)"
+          (change)="toggleLapSelection(lap)"> 
+        Lap {{ lap }}
+      </div>
+    </div>
+    <div class="button-group">
+      <button (click)="goBack()">Back</button>
+      <button (click)="updateChart()" [disabled]="selectedLaps.size === 0">Next</button>
+    </div>
+  </div>
+
+  <!-- Step: Chart Display -->
+  <div *ngIf="step === 'chart'" class="center-content">
+    <!-- Slider Container -->
+    <div *ngIf="maxTimeIndex > 0" class="time-slider-container">
+      <span class="start-time">{{ startTime }}</span>
+
+      <div class="lap-indicators">
+        <div *ngFor="let rider of selectedRiders">
+          <div *ngFor="let lap of getLapStartEnd(rider)"
+               class="lap-indicator"
+               [ngStyle]="{
+                 'left': getLapIndicatorPosition(lap.time),
+                 'color': getColorForRider(rider),
+                 'bottom': getIndicatorOffset(lap.time, rider) + 'px'
+               }"
+               (click)="moveSliderToTime(lap.time)">
+            <!-- Indikatora kaste -->
+            <div class="lap-indicator-box" [ngStyle]="{'background-color': getColorForRider(rider)}">
+              {{ lap.label }}
+            </div>
+            <!-- Indikatora bultiņa -->
+            <div class="lap-indicator-arrow" [ngStyle]="{'border-top-color': getColorForRider(rider)}"></div>
+          </div>
+        </div>
+      </div>      
+    
+      <input 
+        type="range" 
+        min="0" 
+        [max]="maxTimeIndex" 
+        [(ngModel)]="selectedTimeIndex" 
+        (input)="onTimeChange($event)" 
+        class="time-slider">
+    
+      <span class="current-time">{{ currentTime }}</span>
+      <span class="end-time">{{ endTime }}</span>
+    </div>
+
+    <!-- Info Display -->
+    <div class="info-display-container">
+      <div *ngFor="let rider of selectedRiders">
+        <div *ngIf="trackerData[rider]" 
+             [ngClass]="{'inactive': !trackerData[rider].isActive}"
+             class="speed-info">
+          <div class="color-circle" 
+               [ngStyle]="{'background-color': getColorForRider(rider)}"></div>
+          <ng-container *ngIf="trackerData[rider]?.isActive; else inactiveState">
+            <span class="speed-value">Speed: <span class="speed-bold">{{ trackerData[rider].speed | number:'1.0-2' }}</span> km/h | </span>
+            <span class="speed-value">s: {{ trackerData[rider].s | number:'1.0-0' }} | </span>
+            <span class="speed-value">d: {{ trackerData[rider].d | number:'1.2-2' }}</span>
+          </ng-container>
+          <ng-template #inactiveState>
+            <span class="speed-value">Not on a track</span>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Scatter Chart -->
+    <div>
+      <canvas baseChart
+              [data]="scatterChartData"
+              [options]="scatterChartOptions"
+              [type]="scatterChartType">
+      </canvas>
+    </div>
+
+    <div class="button-group">
+      <button (click)="goBack()">Back</button>
+    </div>
+  </div>
+</div>

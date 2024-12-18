@@ -1,0 +1,230 @@
+.controls {
+  width: 50%;
+  margin: 0 auto;
+  text-align: center;
+  font-family: Arial, sans-serif;
+}
+
+h2 {
+  margin-bottom: 1rem;
+}
+
+.vertical-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 1.5rem;
+}
+
+.button-group {
+  display: flex;
+  justify-content: center; /* Centrē pogas horizontāli */
+  gap: 20px; /* Atstarpes starp pogām */
+  margin-top: 1rem;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+canvas {
+  max-width: 75vw;
+  max-height: 85vh;
+  width: 75vw;
+  height: 85vh;
+  display: block;
+  display: block;          /* Nodrošina, ka canvas pareizi uzvedas */
+  margin: auto;            /* Centrē no malas */
+  background: transparent; /* Nodrošina caurspīdīgu fonu */
+}
+
+.center-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.checkbox-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.button-group {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+/* Centered display for speed, s, and d values */
+.info-display-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 1000; /* Ensure the info display is on top of other elements */
+}
+
+.speed-info {
+  min-width: 250px; /* Pielāgojiet šo vērtību atkarībā no vajadzīgā izmēra */
+  display: flex;
+  align-items: center; /* Vertically center the content */
+  margin-bottom: 8px; /* Space between speed entries */
+  padding: 5px;
+  border-radius: 5px;
+  background-color: #eddadaa5; /* Light background to highlight the speed info */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Light shadow for a subtle 3D effect */
+}
+
+.color-circle {
+  width: 12px; /* Size of the color circle */
+  height: 12px;
+  border-radius: 50%; /* Make the div a circle */
+  margin-right: 10px; /* Space between the circle and the speed text */
+  border: 1px solid #333; /* Add a slight border for better visibility */
+}
+
+.speed-value {
+  font-size: 14px; /* Font size for the speed value */
+  color: #333; /* Use black color for the speed value */
+  margin-left: 5px; /* Add some space between values */
+}
+
+.speed-bold {
+  font-weight: bold;
+}
+
+/* Custom styling for the range input slider */
+.time-slider-container {
+  position: relative;
+  width: 100%; 
+  margin: 25px auto 0 auto; 
+  display: flex;
+  justify-content: center;
+}
+
+.time-slider {
+  width: 150%;
+  max-width: 10000px;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px; 
+  background: #ddd;
+  border-radius: 5px;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.time-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 21px; 
+  height: 15px; 
+  background: rgb(213, 117, 117);
+  border-radius: 3px; 
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+}
+
+.time-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: rgb(213, 117, 117);
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+}
+
+/* Position the current time above the handle */
+.current-time {
+  position: absolute;
+  top: -30px; /* Position above the slider */
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  color: rgb(213, 117, 117);
+  white-space: nowrap; /* Prevent wrapping */
+  z-index: 3; /* Ensure it appears above the thumb */
+  font-weight: bold;
+}
+
+/* Style for the start and end times */
+.start-time,
+.end-time {
+  position: absolute;
+  top: 25px; /* Adjust position relative to the slider */
+  font-size: 14px;
+  color: #333;
+}
+
+.start-time {
+  left: 0; /* Position start time on the left */
+}
+
+.end-time {
+  right: 0; /* Position end time on the right */
+}
+
+.inactive {
+  color: #999;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  padding: 5px;
+  border-radius: 4px;
+}
+
+.lap-indicator {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 12px;
+  transform: translateX(-50%);
+  z-index: 2; /* Nodrošiniet, lai indikatori ir virs slidera */
+  cursor: pointer; /* Add pointer cursor to indicate that the element is clickable */
+  pointer-events: all; /* Ensure the indicator itself can capture clicks */
+}
+
+.lap-indicator-box {
+  background-color: rgba(255, 0, 0, 0.7); /* Fona krāsa tiek dinamiski mainīta atkarībā no braucēja krāsas */
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-weight: bold;
+  color: white;
+}
+
+.lap-indicator-arrow {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid rgba(255, 0, 0, 0.7); /* Bultiņas krāsa tiek dinamiski mainīta atkarībā no braucēja krāsas */
+}
