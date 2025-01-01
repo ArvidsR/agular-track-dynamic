@@ -1,13 +1,14 @@
-const express = require('express');
-const cors = require('cors');
-const { Pool } = require('pg'); 
+const express = require('express'); // Izveido servera lietojumprogrammu
+const cors = require('cors'); // Ļauj piekļūt serverim no citām vietnēm
+const { Pool } = require('pg'); // Savienojums ar PostgreSQL datubāzi
 
 const app = express();
 const PORT = 3000;
 
-app.use(cors()); 
+app.use(cors()); // Atļauj datiem piekļūt no citām lietotnēm
+app.use(express.json()); // Nodrošina, ka serveris saprot JSON formāta pieprasījumus
 
-// PostgreSQL pieslēgšanās parametri
+// Datu bāzes savienojuma parametri
 const dbParams = {
   user: 'postgres',
   host: 'localhost',
@@ -17,136 +18,114 @@ const dbParams = {
 };
 
 const pool = new Pool(dbParams);
-app.use(express.json());
 
-// 1. Iegūst visus pieejamos heat (vai kā tos dēvē jūsu datu modelī)
+// Atbild uz pieprasījumu iegūt visus pieejamos braucienus (heat)
 app.get('/api/heat', async (req, res) => {
   try {
-    const query = 'SELECT DISTINCT heat_id FROM tracking.rider';  // Pielāgojiet šo vaicājumu pēc vajadzības
+    const query = 'SELECT DISTINCT heat_id FROM tracking.rider';
     const result = await pool.query(query);
-    res.json(result.rows);  // Atgriežam visus pieejamos heat
+    res.json(result.rows); // Atgriež braucienu sarakstu
   } catch (err) {
-    console.error('Error fetching heat:', err);
-    res.status(500).send('Error fetching heat');
+    console.error('Kļūda, iegūstot braucienus:', err);
+    res.status(500).send('Kļūda, iegūstot braucienus');
   }
 });
 
-// 2. Iegūst visus pieejamos rider, pamatojoties uz heat
+// Atbild uz pieprasījumu iegūt konkrētā brauciena dalībniekus (rider)
 app.get('/api/riders/:heat', async (req, res) => {
-  const { heat } = req.params;
+  const { heat } = req.params; // Saņem izvēlēto braucienu no pieprasījuma
   try {
-    // SQL vaicājums ar AS, lai pārsauktu "number" uz "riderID"
-    const query = `
-      SELECT DISTINCT number AS "riderID", name 
-      FROM tracking.rider 
-      WHERE heat_id = $1
-    `;
+    const query = 'SELECT DISTINCT number AS "riderID", name FROM tracking.rider WHERE heat_id = $1';
     const result = await pool.query(query, [heat]);
-
-    // Rezultāts tiek tieši atgriezts, jo "riderID" jau ir no SQL
-    res.json(result.rows); 
+    res.json(result.rows); // Atgriež braucēju sarakstu
   } catch (err) {
-    console.error('Error fetching riders:', err);
-    res.status(500).send('Error fetching riders');
+    console.error('Kļūda, iegūstot braucējus:', err);
+    res.status(500).send('Kļūda, iegūstot braucējus');
   }
 });
 
-// 3. Iegūst visus pieejamos laps, pamatojoties uz heat un rider
 app.get('/api/laps/:heat/:rider', async (req, res) => {
-  const { heat, rider } = req.params;
-
+  const { heat, rider } = req.params; // Saņem izvēlēto braucienu un braucēju
   try {
-    // Iegūstam konkrētā braucēja datus no datubāzes, sakārtotus pēc secības
-    const query = 'SELECT s FROM tracking.rider WHERE heat_id = $1 AND number = $2';
+    const query = 'SELECT s FROM tracking.rider WHERE heat_id = $1 AND number = $2 ORDER BY time ASC';
     const result = await pool.query(query, [heat, rider]);
-
-    const rows = result.rows; // Šie ir visi dati par `s` vērtībām
+    const rows = result.rows;
 
     if (rows.length === 0) {
-      return res.status(404).json({ message: 'No data found for this rider and heat.' });
+      return res.status(404).json({ message: 'Dati netika atrasti' });
     }
 
-    // Aprēķinām apļus
     let currentLap = 0;
-    let previousS = rows[0].s; // Sākuma `s` vērtība
-    const laps = new Set();  // Izmanto Set, lai saglabātu tikai unikālos apļus
+    let previousS = rows[0].s;
+    const laps = new Set();
 
     rows.forEach(row => {
       const currentS = row.s;
-
-      // Ja `s` vērtība pāriet pāri robežai no 245 uz 0, tas nozīmē jaunu apli
       if (previousS > 245 && currentS < 5) {
         currentLap++;
       }
-
-      // Pievienojam pašreizējo apļa numuru tikai tad, ja tas ir unikāls
       laps.add(currentLap);
-
-      previousS = currentS; // Atjaunojam iepriekšējo `s` vērtību
+      previousS = currentS;
     });
 
-    // Atgriežam unikālos apļus kā masīvu
-    res.json(Array.from(laps));
+    // Atrodi pēdējo apli
+    const lastLap = Math.max(...laps);
+
+    res.json({
+      laps: Array.from(laps), // Atgriež apļu sarakstu
+      lastLap // Atgriež pēdējo apli
+    });
   } catch (err) {
-    console.error('Error calculating laps:', err);
-    res.status(500).send('Error calculating laps');
+    console.error('Kļūda, aprēķinot apļus:', err);
+    res.status(500).send('Kļūda, aprēķinot apļus');
   }
 });
 
-// 4. Iegūst datus scatter plotam, pamatojoties uz izvēlēto heat, rider un lap
-app.get('/api/scatter-data/:heat/:rider/:lap', async (req, res) => {
-  const { heat, rider, lap } = req.params;
 
+
+// Atbild uz pieprasījumu iegūt scatter plot datus
+app.get('/api/scatter-data/:heat/:rider/:lap', async (req, res) => {
+  const { heat, rider, lap } = req.params; // Saņem izvēlēto braucienu, braucēju un apli
   try {
-    // SQL vaicājums, lai iegūtu visus datus konkrētajam heat un braucējam
     const query = `
-      SELECT name, time, x, y, real_speed, s, d 
-      FROM tracking.rider
-      WHERE heat_id = $1 AND number = $2
+    SELECT name, time, x, y, real_speed, s, d 
+    FROM tracking.rider 
+    WHERE heat_id = $1 
+    AND number = $2
     `;
     const result = await pool.query(query, [heat, rider]);
     const data = result.rows;
 
-    // Aprēķina apļus un iegūst tikai datus vēlamajam aplim
     const scatterData = processLapData(data, parseInt(lap, 10));
-
-    res.json(scatterData);
+    res.json(scatterData); // Atgriež datus konkrētajam aplim
   } catch (err) {
-    console.error('Error fetching scatter data:', err);
-    res.status(500).send('Error fetching scatter data');
+    console.error('Kļūda, iegūstot scatter plot datus:', err);
+    res.status(500).send('Kļūda, iegūstot scatter plot datus');
   }
 });
 
-// Palīgfunkcija apļiem
+
+// Funkcija, kas sagatavo datus konkrētajam aplim
 function processLapData(data, targetLap) {
   const allData = [];
-  let currentLap = 0; // Apļu skaitīšanu sākam ar 0
-  let previousS = data[0]?.s || 0; // Lai izvairītos no kļūdām, ja datu masīvs ir tukšs
+  let currentLap = 0;
+  let previousS = data[0]?.s || 0;
 
-  // Iet cauri katrai datu rindai
   data.forEach((row, index) => {
     const currentS = row.s;
-
-    // Ja mainās no lielas `s` uz mazu (robeža), palielina apļa skaitītāju
     if (index > 0 && previousS > 245 && currentS < 5) {
-      currentLap += 1; // Palielina apļa skaitītāju
+      currentLap++;
     }
-
-    // Ja pašreizējais ieraksts atbilst mērķa aplim, pievieno to rezultātam
     if (currentLap === targetLap) {
-      allData.push({
-        ...row,
-        lap: currentLap, // Pievienojam apļa skaitli
-      });
+      allData.push({ ...row, lap: currentLap });
     }
-
-    previousS = currentS; // Saglabā iepriekšējo `s` vērtību nākamajai iterācijai
+    previousS = currentS;
   });
 
-  return allData;
+  return allData; // Atgriež tikai mērķa apļa datus
 }
 
 // Startē serveri
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Serveris darbojas: http://localhost:${PORT}`);
 });
