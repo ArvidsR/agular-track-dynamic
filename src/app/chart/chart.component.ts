@@ -151,6 +151,7 @@ export class ChartComponent implements OnInit {
   
       this.laps = Array.from(new Set(allLaps)).sort((a, b) => a - b); // Apvieno un sakārto apļus augošā secībā
       this.lastLapMap = lastLapMap; // Saglabā pēdējo apļu karti
+      console.log(lastLapMap);
       this.step = 'lap';
     }).catch((error) => {
       console.error('Error fetching laps:', error);
@@ -450,11 +451,10 @@ export class ChartComponent implements OnInit {
   getLapStartEnd(riderId: number): Array<{ label: string, time: number }> {
     const startEndData: Array<{ label: string, time: number }> = [];
     const laps = Array.from(this.selectedLaps).sort((a, b) => a - b); // Sakārto apļus augošā secībā
-
-    // Iegūst reālo pēdējo apli no braucēja datiem
-    const allRiderData = this.filteredData[riderId];
-    const realLastLap = allRiderData ? Math.max(...allRiderData.map(item => item.lap)) : -1;
-
+  
+    // Iegūst reālo pēdējo apli no lastLapMap
+    const realLastLap = this.lastLapMap.get(riderId);
+  
     laps.forEach((lap, index) => {
       const lapData = this.filteredData[riderId]?.filter(item => item.lap === lap);
       if (lapData && lapData.length > 0) {
@@ -463,10 +463,10 @@ export class ChartComponent implements OnInit {
           label: `s${lap}`,
           time: new Date(lapData[0].time).getTime()
         });
-
-        // Pievieno apļa beigu laiku, ja tas ir pēdējais aplis šim braucējam vai nākamais aplis nav secīgs
+  
+        // Pievieno apļa beigu laiku
         const nextLap = laps[index + 1];
-        if (!nextLap || nextLap !== lap + 1) {
+        if (!nextLap || nextLap !== lap + 1 || lap === realLastLap) {
           startEndData.push({
             label: `e${lap}`,
             time: new Date(lapData[lapData.length - 1].time).getTime()
@@ -474,23 +474,28 @@ export class ChartComponent implements OnInit {
         }
       }
     });
-
-    // Pievieno "End" indikatoru tikai tad, ja pēdējais izvēlētais aplis sakrīt ar reālo pēdējo apli
-    if (laps.includes(realLastLap)) {
+  
+    // Vienmēr pievieno "End" indikatoru pēdējam aplim, ja tas ir reālais pēdējais aplis
+    if (realLastLap) {
       const lastLapData = this.filteredData[riderId]?.filter(item => item.lap === realLastLap);
       if (lastLapData && lastLapData.length > 0) {
-        startEndData.push({
-          label: 'End',
-          time: new Date(lastLapData[lastLapData.length - 1].time).getTime()
-        });
+        const endIndicatorExists = startEndData.some(
+          item => item.label === 'End' && item.time === new Date(lastLapData[lastLapData.length - 1].time).getTime()
+        );
+  
+        if (!endIndicatorExists) {
+          startEndData.push({
+            label: 'End',
+            time: new Date(lastLapData[lastLapData.length - 1].time).getTime()
+          });
+        }
       }
     }
-
+  
     return startEndData;
   }
-
-
   
+
   
   // Aprēķina apļa indikatora pozīciju laika slīdnī procentos
   getLapIndicatorPosition(timeInMs: number): string {
